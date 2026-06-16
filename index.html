@@ -44,7 +44,7 @@
       <input type="hidden" id="referenceNo"><input type="hidden" id="activityName"><input type="hidden" id="department"><input type="hidden" id="activityDate">
       <div class="section-title">Student Details</div>
       <div class="field"><label for="studentName">Name of the Student <span class="required">*</span></label><input id="studentName" type="text" placeholder="Enter your full name" required></div>
-      <div class="field"><label for="rollNumber">Roll Number / Admission Number</label><input id="rollNumber" type="text" placeholder="Optional but recommended"><div class="hint">This helps avoid duplicate attendance entries.</div></div>
+      <div class="field"><label for="rollNumber">Registered No</label><input id="rollNumber" type="text" placeholder="Enter registered number"><div class="hint">This helps avoid duplicate attendance entries.</div></div>
       <div class="field"><label for="programmeCourse">Programme & Course <span class="required">*</span></label><select id="programmeCourse" required><option value="">Select Programme & Course</option><option>B.A. HEP</option><option>B.A. HPT</option><option>B.Com General</option><option>B.Com Computer Applications</option><option>B.Sc MPC</option><option>B.Sc MPCS</option><option>B.Sc CBZ</option><option>B.Sc Computer Science</option><option>BBA</option><option>Other</option></select></div>
       <div class="field hidden" id="otherCourseBox"><label for="otherCourse">Enter Programme & Course <span class="required">*</span></label><input id="otherCourse" type="text" placeholder="Example: B.Sc Data Science"></div>
       <div class="field"><label for="opinion">Opinion on this Activity <span class="required">*</span></label><select id="opinion" required><option value="">Select Opinion</option><option>Excellent</option><option>Very Good</option><option>Satisfactory</option><option>Average</option><option>Below Average</option></select></div>
@@ -54,7 +54,7 @@
     </form>
   </main>
   <script>
-    const STUDENT_ATTENDANCE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUqrOppme69ShCaxxB9r2wh2Rdn5LAX73oBX6N_1HVqnWXNCXWJohqtCY-pOhNzNcK/exec";
+    const STUDENT_ATTENDANCE_SCRIPT_URL = "PASTE_ATTENDANCE_APPS_SCRIPT_WEB_APP_URL_HERE";
 
     const form = document.getElementById("studentAttendanceForm");
     const statusBox = document.getElementById("statusBox");
@@ -113,6 +113,69 @@
     ["mousemove","touchmove"].forEach(ev=>canvas.addEventListener(ev,move,{passive:false}));
     ["mouseup","mouseleave","touchend","touchcancel"].forEach(ev=>canvas.addEventListener(ev,stop,{passive:false}));
 
+
+    function getTrimmedSignatureDataUrl() {
+      const rawCanvas = canvas;
+      const rawCtx = rawCanvas.getContext("2d");
+      const width = rawCanvas.width;
+      const height = rawCanvas.height;
+      const imageData = rawCtx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+
+      let minX = width;
+      let minY = height;
+      let maxX = 0;
+      let maxY = 0;
+      let foundInk = false;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const i = (y * width + x) * 4;
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const a = data[i + 3];
+
+          // Detect dark ink and ignore white/transparent background.
+          if (a > 20 && (r < 245 || g < 245 || b < 245)) {
+            foundInk = true;
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      if (!foundInk) {
+        return rawCanvas.toDataURL("image/png");
+      }
+
+      const pad = Math.round(12 * Math.max(window.devicePixelRatio || 1, 1));
+      minX = Math.max(0, minX - pad);
+      minY = Math.max(0, minY - pad);
+      maxX = Math.min(width, maxX + pad);
+      maxY = Math.min(height, maxY + pad);
+
+      const cropWidth = Math.max(1, maxX - minX);
+      const cropHeight = Math.max(1, maxY - minY);
+
+      const trimmedCanvas = document.createElement("canvas");
+      trimmedCanvas.width = cropWidth;
+      trimmedCanvas.height = cropHeight;
+
+      const trimmedCtx = trimmedCanvas.getContext("2d");
+      trimmedCtx.fillStyle = "#ffffff";
+      trimmedCtx.fillRect(0, 0, cropWidth, cropHeight);
+      trimmedCtx.drawImage(
+        rawCanvas,
+        minX, minY, cropWidth, cropHeight,
+        0, 0, cropWidth, cropHeight
+      );
+
+      return trimmedCanvas.toDataURL("image/png");
+    }
+
     form.addEventListener("submit", async function(e){
       e.preventDefault(); hideStatus();
       if(!form.checkValidity()){form.reportValidity(); return;}
@@ -129,10 +192,11 @@
         department: document.getElementById("department").value,
         activityDate: document.getElementById("activityDate").value,
         studentName: document.getElementById("studentName").value.trim(),
+        registeredNo: document.getElementById("rollNumber").value.trim(),
         rollNumber: document.getElementById("rollNumber").value.trim(),
         programmeCourse: course,
         opinion: document.getElementById("opinion").value,
-        signatureBase64: canvas.toDataURL("image/png"),
+        signatureBase64: getTrimmedSignatureDataUrl(),
         submittedAt: new Date().toISOString()
       };
 
