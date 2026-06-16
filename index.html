@@ -45,8 +45,29 @@
       <div class="section-title">Student Details</div>
       <div class="field"><label for="studentName">Name of the Student <span class="required">*</span></label><input id="studentName" type="text" placeholder="Enter your full name" required></div>
       <div class="field"><label for="rollNumber">Registered No</label><input id="rollNumber" type="text" placeholder="Enter registered number"><div class="hint">This helps avoid duplicate attendance entries.</div></div>
-      <div class="field"><label for="programmeCourse">Programme & Course <span class="required">*</span></label><select id="programmeCourse" required><option value="">Select Programme & Course</option><option>B.A. HEP</option><option>B.A. HPT</option><option>B.Com General</option><option>B.Com Computer Applications</option><option>B.Sc MPC</option><option>B.Sc MPCS</option><option>B.Sc CBZ</option><option>B.Sc Computer Science</option><option>BBA</option><option>Other</option></select></div>
+      <div class="field"><label for="programmeCourse">Programme & Course <span class="required">*</span></label><select id="programmeCourse" required>
+<option value="">Select Programme & Course</option>
+<option>B.A Honours (Political Science)</option>
+<option>B.Com Honours (Computer Applications)</option>
+<option>B.Sc Honours (Mathematics)</option>
+<option>B.Sc Honours (Computer Science)</option>
+<option>B.Sc Honours (Physics)</option>
+<option>B.Sc Honours (Chemistry)</option>
+<option>B.Sc Honours (Zoology)</option>
+<option>Other</option>
+</select></div>
       <div class="field hidden" id="otherCourseBox"><label for="otherCourse">Enter Programme & Course <span class="required">*</span></label><input id="otherCourse" type="text" placeholder="Example: B.Sc Data Science"></div>
+
+      <div class="field">
+        <label for="studentYear">Year <span class="required">*</span></label>
+        <select id="studentYear" required>
+          <option value="">Select Year</option>
+          <option>I</option>
+          <option>II</option>
+          <option>III</option>
+        </select>
+      </div>
+
       <div class="field"><label for="opinion">Opinion on this Activity <span class="required">*</span></label><select id="opinion" required><option value="">Select Opinion</option><option>Excellent</option><option>Very Good</option><option>Satisfactory</option><option>Average</option><option>Below Average</option></select></div>
       <div class="section-title">Student Signature</div>
       <div class="field"><label>Signature <span class="required">*</span></label><div class="signature-wrap"><canvas id="signatureCanvas"></canvas></div><div class="actions"><button type="button" id="clearSignatureBtn" class="btn btn-secondary">Clear Signature</button><button type="button" id="checkSignatureBtn" class="btn btn-secondary">Check Signature</button></div><div class="hint">Use your finger to sign inside the box. Signature is mandatory.</div></div>
@@ -54,7 +75,7 @@
     </form>
   </main>
   <script>
-    const STUDENT_ATTENDANCE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUqrOppme69ShCaxxB9r2wh2Rdn5LAX73oBX6N_1HVqnWXNCXWJohqtCY-pOhNzNcK/exec";
+    const STUDENT_ATTENDANCE_SCRIPT_URL = "PASTE_ATTENDANCE_APPS_SCRIPT_WEB_APP_URL_HERE";
 
     const form = document.getElementById("studentAttendanceForm");
     const statusBox = document.getElementById("statusBox");
@@ -195,6 +216,8 @@
         registeredNo: document.getElementById("rollNumber").value.trim(),
         rollNumber: document.getElementById("rollNumber").value.trim(),
         programmeCourse: course,
+        studentYear: document.getElementById("studentYear").value,
+        year: document.getElementById("studentYear").value,
         opinion: document.getElementById("opinion").value,
         signatureBase64: getTrimmedSignatureDataUrl(),
         submittedAt: new Date().toISOString()
