@@ -37,6 +37,35 @@
     .signature-badge.ready{background:#ecfdf3;color:var(--success);border-color:#75e0a7}
     .signature-note{color:var(--muted);font-size:.86rem;font-weight:700}
 
+
+    .signature-inline-message{
+      display:none;
+      margin:8px 0 10px;
+      padding:9px 12px;
+      border-radius:12px;
+      font-size:.92rem;
+      font-weight:900;
+      line-height:1.35;
+    }
+    .signature-inline-message.success{
+      display:block;
+      color:var(--success);
+      background:#ecfdf3;
+      border:1px solid #75e0a7;
+    }
+    .signature-inline-message.warning{
+      display:block;
+      color:#8a5a00;
+      background:#fff7e6;
+      border:1px solid #f6c453;
+    }
+    .signature-inline-message.error{
+      display:block;
+      color:var(--danger);
+      background:#fef3f2;
+      border:1px solid #fda29b;
+    }
+
     .submit-wrap{position:sticky;bottom:0;z-index:10;width:calc(100% + 28px);margin-left:-14px;padding:12px 14px;background:rgba(234,243,251,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(216,227,239,.9)}
     .hidden{display:none!important}.success-card{display:none;text-align:center}.success-card.active{display:block}.success-icon{width:58px;height:58px;margin:0 auto 10px;border-radius:50%;background:#dcfae6;color:var(--success);display:grid;place-items:center;font-size:1.8rem;font-weight:900}.success-title{color:var(--success);font-size:1.22rem;font-weight:900;margin:0 0 8px}
     @media(max-width:480px){body{font-size:18px}.page{padding:10px}.info{grid-template-columns:1fr;gap:2px}.actions{grid-template-columns:1fr}canvas{height:112px}.progress-steps{grid-template-columns:1fr}}
@@ -97,6 +126,7 @@
 
       <div class="field"><label for="opinion">Opinion on this Activity <span class="required">*</span></label><select id="opinion" required><option value="">Select Opinion</option><option>Excellent</option><option>Very Good</option><option>Satisfactory</option><option>Average</option><option>Below Average</option></select></div>
       <div class="section-title">Student Signature</div>
+      <div id="signatureMessage" class="signature-inline-message"></div>
       <div class="field" id="signatureField">
         <label>Signature <span class="required">*</span></label>
         <div class="signature-wrap" id="signatureWrap"><canvas id="signatureCanvas"></canvas></div>
@@ -131,6 +161,7 @@
     const signatureWrap = document.getElementById("signatureWrap");
     const signatureBadge = document.getElementById("signatureBadge");
     const signatureField = document.getElementById("signatureField");
+    const signatureMessage = document.getElementById("signatureMessage");
     const checkSignatureBtn = document.getElementById("checkSignatureBtn");
     let drawing = false, signed = false, lastX = 0, lastY = 0;
 
@@ -222,11 +253,21 @@
       return {x:t.clientX-r.left, y:t.clientY-r.top};
     }
     function start(e){e.preventDefault(); drawing=true; const p=point(e); lastX=p.x; lastY=p.y;}
-    function move(e){if(!drawing)return; e.preventDefault(); const p=point(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; if(!signed){signed=true; updateInteractiveState();}}
+    function move(e){if(!drawing)return; e.preventDefault(); const p=point(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; if(!signed){signed=true; hideSignatureMessage(); updateInteractiveState();}}
     function stop(e){if(!drawing)return; e.preventDefault(); drawing=false;}
     function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height); signed=false; updateInteractiveState();}
     function showStatus(type,msg){statusBox.className="status "+type; statusBox.textContent=msg; statusBox.scrollIntoView({behavior:"smooth",block:"start"});}
     function hideStatus(){statusBox.className="status"; statusBox.textContent="";}
+
+    function showSignatureMessage(type, msg){
+      signatureMessage.className = "signature-inline-message " + type;
+      signatureMessage.textContent = msg;
+    }
+
+    function hideSignatureMessage(){
+      signatureMessage.className = "signature-inline-message";
+      signatureMessage.textContent = "";
+    }
 
     document.getElementById("programmeCourse").addEventListener("change", function(){
       const box = document.getElementById("otherCourseBox");
@@ -234,8 +275,8 @@
       if(this.value === "Other"){box.classList.remove("hidden"); other.required=true;} else {box.classList.add("hidden"); other.required=false; other.value="";}
       updateInteractiveState();
     });
-    document.getElementById("clearSignatureBtn").addEventListener("click", function(){clearSignature(); hideStatus(); showStatus("success","Signature cleared. Please sign again.");});
-    document.getElementById("checkSignatureBtn").addEventListener("click", function(){updateInteractiveState(); signed ? showStatus("success","Signature ready for submission.") : showStatus("error","Signature box is empty. Please sign using your finger.");});
+    document.getElementById("clearSignatureBtn").addEventListener("click", function(){clearSignature(); hideStatus(); showSignatureMessage("warning","Signature cleared. Please sign again.");});
+    document.getElementById("checkSignatureBtn").addEventListener("click", function(){updateInteractiveState(); signed ? showSignatureMessage("success","Signature uploaded and ready for submission.") : showSignatureMessage("error","Signature box is empty. Please sign using your finger.");});
     ["mousedown","touchstart"].forEach(ev=>canvas.addEventListener(ev,start,{passive:false}));
     ["mousemove","touchmove"].forEach(ev=>canvas.addEventListener(ev,move,{passive:false}));
     ["mouseup","mouseleave","touchend","touchcancel"].forEach(ev=>canvas.addEventListener(ev,stop,{passive:false}));
