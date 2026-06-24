@@ -95,12 +95,13 @@
     </section>
 
     <div id="statusBox" class="status"></div>
-    <section id="successCard" class="success-card"><div class="success-icon">✓</div><h2 class="success-title">Attendance Submitted</h2><p>Thank you. Your attendance and signature have been recorded.</p></section>
+    <section id="successCard" class="success-card"><div class="success-icon">✓</div><h2 class="success-title">Attendance Submitted</h2><p>Thank you. Your attendance and signature have been recorded. Your participation certificate will be sent to your email.</p></section>
     <form id="studentAttendanceForm">
       <input type="hidden" id="referenceNo"><input type="hidden" id="activityName"><input type="hidden" id="department"><input type="hidden" id="activityDate">
       <div class="section-title">Student Details</div>
       <div class="field"><label for="studentName">Name of the Student <span class="required">*</span></label><input id="studentName" type="text" placeholder="Enter your full name" required></div>
       <div class="field"><label for="rollNumber">Registered No</label><input id="rollNumber" type="text" placeholder="Enter registered number"><div class="hint">This helps avoid duplicate attendance entries.</div></div>
+      <div class="field"><label for="studentEmail">Student Email Address <span class="required">*</span></label><input id="studentEmail" type="email" placeholder="Enter your email address" required><div class="hint">Your participation certificate will be sent to this email.</div></div>
       <div class="field"><label for="programmeCourse">Programme & Course <span class="required">*</span></label><select id="programmeCourse" required>
 <option value="">Select Programme & Course</option>
 <option>B.A Honours (Political Science)</option>
@@ -192,6 +193,7 @@
     function isStudentDetailsComplete(){
       return Boolean(
         document.getElementById("studentName").value.trim() &&
+        document.getElementById("studentEmail").value.trim() &&
         getSelectedCourse() &&
         document.getElementById("studentYear").value &&
         document.getElementById("opinion").value
@@ -211,6 +213,7 @@
       setStepDone(stepSignature, signed);
 
       document.getElementById("studentName").closest(".field").classList.toggle("completed", Boolean(document.getElementById("studentName").value.trim()));
+      document.getElementById("studentEmail").closest(".field").classList.toggle("completed", Boolean(document.getElementById("studentEmail").value.trim()));
       document.getElementById("programmeCourse").closest(".field").classList.toggle("completed", Boolean(getSelectedCourse()));
       document.getElementById("studentYear").closest(".field").classList.toggle("completed", Boolean(document.getElementById("studentYear").value));
       document.getElementById("opinion").closest(".field").classList.toggle("completed", Boolean(document.getElementById("opinion").value));
@@ -230,7 +233,7 @@
       if(!activityLoaded){
         progressHint.textContent = "Activity reference is missing. Please open the correct QR/link.";
       } else if(!detailsDone){
-        progressHint.textContent = "Complete student name, course, year and opinion.";
+        progressHint.textContent = "Complete student name, email, course, year and opinion.";
       } else if(!signed){
         progressHint.textContent = "Sign inside the box and tap Upload Signature.";
       } else {
@@ -283,7 +286,7 @@
 
 
 
-    ["studentName","rollNumber","programmeCourse","otherCourse","studentYear","opinion"].forEach(function(id){
+    ["studentName","rollNumber","studentEmail","programmeCourse","otherCourse","studentYear","opinion"].forEach(function(id){
       const el = document.getElementById(id);
       if(el){
         el.addEventListener("input", updateInteractiveState);
@@ -370,6 +373,9 @@
         department: document.getElementById("department").value,
         activityDate: document.getElementById("activityDate").value,
         studentName: document.getElementById("studentName").value.trim(),
+        studentEmail: document.getElementById("studentEmail").value.trim(),
+        email: document.getElementById("studentEmail").value.trim(),
+        emailAddress: document.getElementById("studentEmail").value.trim(),
         registeredNo: document.getElementById("rollNumber").value.trim(),
         rollNumber: document.getElementById("rollNumber").value.trim(),
         programmeCourse: course,
