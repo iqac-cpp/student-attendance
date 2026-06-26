@@ -82,6 +82,13 @@
     .btn-danger-outline{background:#fff;color:var(--danger);border:1px solid #f04438}
     .btn-submit-preview{background:var(--success);color:#fff;border:1px solid var(--success)}
 
+
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      box-shadow:none;
+    }
+
     .submit-wrap{position:sticky;bottom:0;z-index:10;width:calc(100% + 28px);margin-left:-14px;padding:12px 14px;background:rgba(234,243,251,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(216,227,239,.9)}
     .hidden{display:none!important}.success-card{display:none;text-align:center}.success-card.active{display:block}.success-icon{width:58px;height:58px;margin:0 auto 10px;border-radius:50%;background:#dcfae6;color:var(--success);display:grid;place-items:center;font-size:1.8rem;font-weight:900}.success-title{color:var(--success);font-size:1.22rem;font-weight:900;margin:0 0 8px}
     @media(max-width:480px){body{font-size:18px}.page{padding:10px}.info{grid-template-columns:1fr;gap:2px}.actions{grid-template-columns:1fr}canvas{height:112px}.progress-steps{grid-template-columns:1fr}}
@@ -158,7 +165,7 @@
         </div>
         <div class="hint">Signature box height is reduced for faster mobile submission. Use your finger or stylus.</div>
       </div>
-      <div class="submit-wrap"><button id="submitBtn" type="submit" class="btn btn-primary">Submit Attendance</button></div>
+      <div class="submit-wrap"><button id="submitBtn" type="submit" class="btn btn-primary" disabled>Submit Attendance</button></div>
     </form>
   </main>
 
@@ -176,7 +183,7 @@
       </div>
       <div class="signature-preview-actions">
         <button id="clearFromPreviewBtn" class="btn btn-danger-outline" type="button">Clear Signature & Re-sign</button>
-        <button id="submitFromPreviewBtn" class="btn btn-submit-preview" type="button">Submit Attendance</button>
+        <button id="submitFromPreviewBtn" class="btn btn-submit-preview" type="button">Submit Signature</button>
       </div>
     </div>
   </div>
@@ -205,7 +212,7 @@
     const signaturePreviewImage = document.getElementById("signaturePreviewImage");
     const clearFromPreviewBtn = document.getElementById("clearFromPreviewBtn");
     const submitFromPreviewBtn = document.getElementById("submitFromPreviewBtn");
-    let drawing = false, signed = false, lastX = 0, lastY = 0;
+    let drawing = false, signed = false, signatureConfirmed = false, lastX = 0, lastY = 0;
 
     function readActivityFromUrl(){
       const p = new URLSearchParams(location.search);
@@ -251,7 +258,7 @@
 
       setStepDone(stepActivity, activityLoaded);
       setStepDone(stepDetails, detailsDone);
-      setStepDone(stepSignature, signed);
+      setStepDone(stepSignature, signatureConfirmed);
 
       document.getElementById("studentName").closest(".field").classList.toggle("completed", Boolean(document.getElementById("studentName").value.trim()));
       document.getElementById("studentEmail").closest(".field").classList.toggle("completed", Boolean(document.getElementById("studentEmail").value.trim()));
@@ -261,9 +268,10 @@
       signatureField.classList.toggle("completed", signed);
       signatureWrap.classList.toggle("signed", signed);
 
-      signatureBadge.textContent = signed ? "Signature Ready" : "Pending Signature";
-      signatureBadge.classList.toggle("ready", signed);
+      signatureBadge.textContent = signatureConfirmed ? "Signature Submitted" : (signed ? "Signature Pending Review" : "Pending Signature");
+      signatureBadge.classList.toggle("ready", signatureConfirmed);
       checkSignatureBtn.textContent = signed ? "View Signature" : "Upload Signature";
+      submitBtn.disabled = !signatureConfirmed;
 
       let percent = 0;
       if(activityLoaded) percent += 25;
@@ -277,8 +285,10 @@
         progressHint.textContent = "Complete student name, email, course, year and opinion.";
       } else if(!signed){
         progressHint.textContent = "Sign inside the box and tap Upload Signature.";
+      } else if(!signatureConfirmed){
+        progressHint.textContent = "Tap View Signature and submit signature after checking it.";
       } else {
-        progressHint.textContent = "All details are ready. Tap Submit Attendance.";
+        progressHint.textContent = "Signature submitted. Now tap Submit Attendance.";
       }
     }
 
@@ -297,9 +307,9 @@
       return {x:t.clientX-r.left, y:t.clientY-r.top};
     }
     function start(e){e.preventDefault(); drawing=true; const p=point(e); lastX=p.x; lastY=p.y;}
-    function move(e){if(!drawing)return; e.preventDefault(); const p=point(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; if(!signed){signed=true; hideSignatureMessage(); updateInteractiveState();}}
+    function move(e){if(!drawing)return; e.preventDefault(); const p=point(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; if(!signed){signed=true;} signatureConfirmed=false; hideSignatureMessage(); updateInteractiveState();}
     function stop(e){if(!drawing)return; e.preventDefault(); drawing=false;}
-    function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height); signed=false; updateInteractiveState();}
+    function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height); signed=false; signatureConfirmed=false; updateInteractiveState();}
     function showStatus(type,msg){statusBox.className="status "+type; statusBox.textContent=msg; statusBox.scrollIntoView({behavior:"smooth",block:"start"});}
     function hideStatus(){statusBox.className="status"; statusBox.textContent="";}
 
@@ -339,12 +349,13 @@
     }
 
     function submitAttendanceFromPreview(){
+      signatureConfirmed = true;
       closeSignaturePreviewModal();
-      if (typeof form.requestSubmit === "function") {
-        form.requestSubmit();
-      } else {
-        submitBtn.click();
-      }
+      updateInteractiveState();
+      showSignatureMessage("success","Signature submitted successfully. Now tap Submit Attendance.");
+      setTimeout(function(){
+        submitBtn.scrollIntoView({behavior:"smooth",block:"center"});
+      }, 120);
     }
 
 
@@ -451,6 +462,7 @@
       const course = document.getElementById("programmeCourse").value === "Other" ? document.getElementById("otherCourse").value.trim() : document.getElementById("programmeCourse").value;
       if(!course){document.getElementById("otherCourse").reportValidity(); return;}
       if(!signed){showStatus("error","Please sign inside the signature box and tap Upload Signature before submitting."); return;}
+      if(!signatureConfirmed){showStatus("error","Please tap View Signature and submit your signature before final attendance submission."); return;}
       if(!document.getElementById("referenceNo").value.trim()){showStatus("error","Activity reference number is missing. Please open the correct QR link."); return;}
       if(STUDENT_ATTENDANCE_SCRIPT_URL.indexOf("PASTE_") === 0){showStatus("error","Apps Script URL is not configured yet."); return;}
 
@@ -480,7 +492,7 @@
         form.classList.add("hidden"); noticeBox.classList.add("hidden"); document.getElementById("progressCard").classList.add("hidden"); successCard.classList.add("active"); successCard.scrollIntoView({behavior:"smooth",block:"start"});
       }catch(error){
         showStatus("error","Attendance submission failed. Please try again.");
-        submitBtn.disabled = false; submitBtn.textContent = "Submit Attendance";
+        submitBtn.disabled = !signatureConfirmed; submitBtn.textContent = "Submit Attendance";
       }
     });
 
