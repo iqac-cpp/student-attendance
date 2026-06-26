@@ -66,9 +66,26 @@
       border:1px solid #fda29b;
     }
 
+
+    .signature-preview-modal{position:fixed;inset:0;background:rgba(15,23,42,.62);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999;backdrop-filter:blur(2px)}
+    .signature-preview-modal.active{display:flex}
+    .signature-preview-card{width:min(560px,100%);background:#fff;border:1px solid #d8e3ef;border-radius:24px;overflow:hidden;box-shadow:0 24px 70px rgba(15,23,42,.28);animation:signaturePreviewPop .18s ease-out}
+    @keyframes signaturePreviewPop{from{transform:translateY(10px) scale(.98);opacity:.25}to{transform:translateY(0) scale(1);opacity:1}}
+    .signature-preview-header{padding:18px 20px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
+    .signature-preview-header h3{margin:0;font-size:1.16rem;line-height:1.25}
+    .signature-preview-header p{margin:6px 0 0;opacity:.94;font-size:.9rem;font-weight:700}
+    .signature-preview-body{padding:18px 20px}
+    .signature-preview-box{border:2px dashed #b9c8d9;border-radius:18px;padding:12px;background:#f8fbff;min-height:120px;display:flex;align-items:center;justify-content:center}
+    .signature-preview-box img{max-width:100%;max-height:170px;display:block;background:#fff;border:1px solid #edf2f7;border-radius:12px;padding:8px}
+    .signature-preview-note{margin:12px 0 0;color:var(--muted);font-weight:800;font-size:.92rem;line-height:1.45}
+    .signature-preview-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 20px}
+    .btn-danger-outline{background:#fff;color:var(--danger);border:1px solid #f04438}
+    .btn-submit-preview{background:var(--success);color:#fff;border:1px solid var(--success)}
+
     .submit-wrap{position:sticky;bottom:0;z-index:10;width:calc(100% + 28px);margin-left:-14px;padding:12px 14px;background:rgba(234,243,251,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(216,227,239,.9)}
     .hidden{display:none!important}.success-card{display:none;text-align:center}.success-card.active{display:block}.success-icon{width:58px;height:58px;margin:0 auto 10px;border-radius:50%;background:#dcfae6;color:var(--success);display:grid;place-items:center;font-size:1.8rem;font-weight:900}.success-title{color:var(--success);font-size:1.22rem;font-weight:900;margin:0 0 8px}
     @media(max-width:480px){body{font-size:18px}.page{padding:10px}.info{grid-template-columns:1fr;gap:2px}.actions{grid-template-columns:1fr}canvas{height:112px}.progress-steps{grid-template-columns:1fr}}
+      @media(max-width:480px){.signature-preview-actions{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -144,6 +161,26 @@
       <div class="submit-wrap"><button id="submitBtn" type="submit" class="btn btn-primary">Submit Attendance</button></div>
     </form>
   </main>
+
+  <div id="signaturePreviewModal" class="signature-preview-modal" role="dialog" aria-modal="true" aria-labelledby="signaturePreviewTitle">
+    <div class="signature-preview-card">
+      <div class="signature-preview-header">
+        <h3 id="signaturePreviewTitle">Preview Your Signature</h3>
+        <p>Please confirm that your signature is clear before submitting attendance.</p>
+      </div>
+      <div class="signature-preview-body">
+        <div class="signature-preview-box">
+          <img id="signaturePreviewImage" alt="Signature Preview">
+        </div>
+        <p class="signature-preview-note">If the signature is incomplete or incorrect, clear it and sign again.</p>
+      </div>
+      <div class="signature-preview-actions">
+        <button id="clearFromPreviewBtn" class="btn btn-danger-outline" type="button">Clear Signature & Re-sign</button>
+        <button id="submitFromPreviewBtn" class="btn btn-submit-preview" type="button">Submit Attendance</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const STUDENT_ATTENDANCE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUqrOppme69ShCaxxB9r2wh2Rdn5LAX73oBX6N_1HVqnWXNCXWJohqtCY-pOhNzNcK/exec";
 
@@ -164,6 +201,10 @@
     const signatureField = document.getElementById("signatureField");
     const signatureMessage = document.getElementById("signatureMessage");
     const checkSignatureBtn = document.getElementById("checkSignatureBtn");
+    const signaturePreviewModal = document.getElementById("signaturePreviewModal");
+    const signaturePreviewImage = document.getElementById("signaturePreviewImage");
+    const clearFromPreviewBtn = document.getElementById("clearFromPreviewBtn");
+    const submitFromPreviewBtn = document.getElementById("submitFromPreviewBtn");
     let drawing = false, signed = false, lastX = 0, lastY = 0;
 
     function readActivityFromUrl(){
@@ -222,7 +263,7 @@
 
       signatureBadge.textContent = signed ? "Signature Ready" : "Pending Signature";
       signatureBadge.classList.toggle("ready", signed);
-      checkSignatureBtn.textContent = signed ? "Signature Ready ✓" : "Upload Signature";
+      checkSignatureBtn.textContent = signed ? "View Signature" : "Upload Signature";
 
       let percent = 0;
       if(activityLoaded) percent += 25;
@@ -272,6 +313,41 @@
       signatureMessage.textContent = "";
     }
 
+
+    function openSignaturePreviewModal(){
+      if(!signed){
+        showSignatureMessage("error","Signature box is empty. Please sign using your finger.");
+        return;
+      }
+      try {
+        signaturePreviewImage.src = getTrimmedSignatureDataUrl();
+      } catch (error) {
+        signaturePreviewImage.src = canvas.toDataURL("image/png");
+      }
+      signaturePreviewModal.classList.add("active");
+    }
+
+    function closeSignaturePreviewModal(){
+      signaturePreviewModal.classList.remove("active");
+    }
+
+    function clearSignatureFromPreview(){
+      clearSignature();
+      closeSignaturePreviewModal();
+      showSignatureMessage("warning","Signature cleared. Please sign again.");
+      setTimeout(function(){signatureField.scrollIntoView({behavior:"smooth",block:"center"});}, 100);
+    }
+
+    function submitAttendanceFromPreview(){
+      closeSignaturePreviewModal();
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+      } else {
+        submitBtn.click();
+      }
+    }
+
+
     document.getElementById("programmeCourse").addEventListener("change", function(){
       const box = document.getElementById("otherCourseBox");
       const other = document.getElementById("otherCourse");
@@ -279,7 +355,19 @@
       updateInteractiveState();
     });
     document.getElementById("clearSignatureBtn").addEventListener("click", function(){clearSignature(); hideStatus(); showSignatureMessage("warning","Signature cleared. Please sign again.");});
-    document.getElementById("checkSignatureBtn").addEventListener("click", function(){updateInteractiveState(); signed ? showSignatureMessage("success","Signature uploaded and ready for submission.") : showSignatureMessage("error","Signature box is empty. Please sign using your finger.");});
+    document.getElementById("checkSignatureBtn").addEventListener("click", function(){updateInteractiveState(); signed ? openSignaturePreviewModal() : showSignatureMessage("error","Signature box is empty. Please sign using your finger.");});
+
+    clearFromPreviewBtn.addEventListener("click", clearSignatureFromPreview);
+    submitFromPreviewBtn.addEventListener("click", submitAttendanceFromPreview);
+    signaturePreviewModal.addEventListener("click", function(event){
+      if(event.target === signaturePreviewModal){closeSignaturePreviewModal();}
+    });
+    document.addEventListener("keydown", function(event){
+      if(event.key === "Escape" && signaturePreviewModal.classList.contains("active")){
+        closeSignaturePreviewModal();
+      }
+    });
+
     ["mousedown","touchstart"].forEach(ev=>canvas.addEventListener(ev,start,{passive:false}));
     ["mousemove","touchmove"].forEach(ev=>canvas.addEventListener(ev,move,{passive:false}));
     ["mouseup","mouseleave","touchend","touchcancel"].forEach(ev=>canvas.addEventListener(ev,stop,{passive:false}));
