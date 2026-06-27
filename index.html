@@ -36,31 +36,34 @@
     .signature-badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;background:#fff7e6;color:#8a5a00;border:1px solid #f6c453;font-size:.86rem;font-weight:900}
     .signature-badge.ready{background:#ecfdf3;color:var(--success);border-color:#75e0a7}
     .signature-note{color:var(--muted);font-size:.86rem;font-weight:700}
-
-
     .signature-inline-message{
-      display:none;
+      display:block;
+      visibility:hidden;
+      min-height:42px;
       margin:8px 0 10px;
       padding:9px 12px;
       border-radius:12px;
       font-size:.92rem;
       font-weight:900;
       line-height:1.35;
+      border:1px solid transparent;
+      background:transparent;
+      color:transparent;
     }
     .signature-inline-message.success{
-      display:block;
+      visibility:visible;
       color:var(--success);
       background:#ecfdf3;
       border:1px solid #75e0a7;
     }
     .signature-inline-message.warning{
-      display:block;
+      visibility:visible;
       color:#8a5a00;
       background:#fff7e6;
       border:1px solid #f6c453;
     }
     .signature-inline-message.error{
-      display:block;
+      visibility:visible;
       color:var(--danger);
       background:#fef3f2;
       border:1px solid #fda29b;
@@ -136,6 +139,12 @@
       #signatureWrap{height:130px;min-height:130px;max-height:130px}
       #signatureCanvas{height:112px!important;min-height:112px!important;max-height:112px!important}
     }
+
+
+    /* Prevent post-clear signature jump by reserving stable space */
+    #signatureMessage{min-height:42px}
+    #signatureField{scroll-margin-top:20px}
+    #signatureWrap{overflow:hidden}
 
     .submit-wrap{position:sticky;bottom:0;z-index:10;width:calc(100% + 28px);margin-left:-14px;padding:12px 14px;background:rgba(234,243,251,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(216,227,239,.9)}
     .hidden{display:none!important}.success-card{display:none;text-align:center}.success-card.active{display:block}.success-icon{width:58px;height:58px;margin:0 auto 10px;border-radius:50%;background:#dcfae6;color:var(--success);display:grid;place-items:center;font-size:1.8rem;font-weight:900}.success-title{color:var(--success);font-size:1.22rem;font-weight:900;margin:0 0 8px}
@@ -381,7 +390,7 @@
 
     function hideSignatureMessage(){
       signatureMessage.className = "signature-inline-message";
-      signatureMessage.textContent = "";
+      signatureMessage.textContent = "\u00A0";
     }
 
 
@@ -555,6 +564,7 @@
     });
 
     window.addEventListener("resize", function(){ if(!drawing){ resizeCanvas(); } });
+    hideSignatureMessage();
     readActivityFromUrl();
     updateInteractiveState();
     setTimeout(function(){resizeCanvas(); updateInteractiveState();}, 100);
