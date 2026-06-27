@@ -20,7 +20,6 @@
     label{display:block;font-size:1.02rem;font-weight:900;margin:0 0 9px;color:#344054}.required{color:var(--danger)}
     input,select,button{font:inherit}input,select{width:100%;min-height:52px;border:1px solid #cbd5e1;border-radius:14px;padding:13px 14px;background:white;color:var(--text);outline:none}
     input:focus,select:focus{border-color:var(--blue2);box-shadow:0 0 0 4px rgba(35,107,164,.14)}.hint{margin-top:7px;color:var(--muted);font-size:.9rem}
-    body.signature-drawing{overflow:hidden;touch-action:none;user-select:none}
     .signature-wrap{background:white;border:2px dashed #b9c8d9;border-radius:16px;padding:8px;touch-action:none}.signature-wrap.signed{border-color:#75e0a7;background:#f6fffa}canvas{display:block;width:100%;height:96px;background:white;border-radius:12px;border:1px solid #edf2f7;touch-action:none}
     .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.btn{width:100%;border:none;border-radius:15px;padding:14px 16px;font-size:1.02rem;font-weight:900;cursor:pointer}.btn-primary{background:var(--blue);color:white;box-shadow:0 8px 20px rgba(23,74,120,.22)}.btn-secondary{background:white;color:var(--blue);border:1px solid var(--blue)}
 
@@ -91,33 +90,16 @@
     }
 
 
-    .progress-hint{
-      min-height:42px;
-      display:flex;
-      align-items:center;
-    }
-    .signature-state-row{
-      min-height:44px;
-      align-items:center;
-    }
-    .signature-badge{
-      min-width:205px;
-      justify-content:center;
-      text-align:center;
-      white-space:nowrap;
-    }
-    .signature-note{
-      min-height:24px;
-      display:flex;
-      align-items:center;
-    }
-    .signature-wrap{
-      overflow:hidden;
-      contain:layout paint;
-    }
-    #signatureCanvas{
-      flex:0 0 auto;
-    }
+    html,body{overscroll-behavior-y:contain}
+    #signatureField{min-height:342px;scroll-margin-top:20px}
+    #signatureWrap{height:116px;min-height:116px;max-height:116px;overflow:hidden;position:relative;transform:translateZ(0);-webkit-transform:translateZ(0)}
+    #signatureCanvas{height:96px!important;min-height:96px!important;max-height:96px!important;display:block;touch-action:none!important;-ms-touch-action:none!important;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+    #signatureMessage{min-height:40px}
+    .progress-hint{min-height:42px;display:flex;align-items:center}
+    .signature-state-row{min-height:44px;align-items:center}
+    .signature-badge{min-width:215px;justify-content:center;text-align:center;white-space:nowrap}
+    .signature-note{min-height:24px;display:flex;align-items:center}
+    @media(max-width:480px){#signatureField{min-height:360px}#signatureWrap{height:126px;min-height:126px;max-height:126px}#signatureCanvas{height:106px!important;min-height:106px!important;max-height:106px!important}}
 
     .submit-wrap{position:sticky;bottom:0;z-index:10;width:calc(100% + 28px);margin-left:-14px;padding:12px 14px;background:rgba(234,243,251,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(216,227,239,.9)}
     .hidden{display:none!important}.success-card{display:none;text-align:center}.success-card.active{display:block}.success-icon{width:58px;height:58px;margin:0 auto 10px;border-radius:50%;background:#dcfae6;color:var(--success);display:grid;place-items:center;font-size:1.8rem;font-weight:900}.success-title{color:var(--success);font-size:1.22rem;font-weight:900;margin:0 0 8px}
@@ -336,9 +318,9 @@
       const t = e.touches && e.touches.length ? e.touches[0] : e.changedTouches && e.changedTouches.length ? e.changedTouches[0] : e;
       return {x:t.clientX-r.left, y:t.clientY-r.top};
     }
-    function start(e){e.preventDefault(); document.body.classList.add("signature-drawing"); drawing=true; const p=point(e); lastX=p.x; lastY=p.y;}
-    function move(e){if(!drawing)return; e.preventDefault(); const p=point(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; if(!signed){signed=true;} signatureConfirmed=false; hideSignatureMessage();}
-    function stop(e){if(!drawing)return; e.preventDefault(); drawing=false; document.body.classList.remove("signature-drawing"); updateInteractiveState();}
+    function start(e){e.preventDefault(); if(e.pointerId && canvas.setPointerCapture){try{canvas.setPointerCapture(e.pointerId);}catch(error){}} drawing=true; const p=point(e); lastX=p.x; lastY=p.y;}
+    function move(e){if(!drawing)return; e.preventDefault(); const p=point(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke(); lastX=p.x; lastY=p.y; signed=true; signatureConfirmed=false;} signatureConfirmed=false; hideSignatureMessage(); updateInteractiveState();}
+    function stop(e){if(!drawing)return; e.preventDefault(); drawing=false; hideSignatureMessage(); updateInteractiveState();}
     function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height); signed=false; signatureConfirmed=false; updateInteractiveState();}
     function showStatus(type,msg){statusBox.className="status "+type; statusBox.textContent=msg; statusBox.scrollIntoView({behavior:"smooth",block:"start"});}
     function hideStatus(){statusBox.className="status"; statusBox.textContent="";}
@@ -409,11 +391,16 @@
       }
     });
 
-    ["mousedown","touchstart"].forEach(ev=>canvas.addEventListener(ev,start,{passive:false}));
-    ["mousemove","touchmove"].forEach(ev=>canvas.addEventListener(ev,move,{passive:false}));
-    ["mouseup","mouseleave","touchend","touchcancel"].forEach(ev=>canvas.addEventListener(ev,stop,{passive:false}));
-    window.addEventListener("mouseup", function(){document.body.classList.remove("signature-drawing");});
-    window.addEventListener("touchend", function(){document.body.classList.remove("signature-drawing");});
+    if (window.PointerEvent) {
+      canvas.addEventListener("pointerdown", start, {passive:false});
+      canvas.addEventListener("pointermove", move, {passive:false});
+      ["pointerup","pointercancel","pointerleave"].forEach(ev=>canvas.addEventListener(ev, stop, {passive:false}));
+    } else {
+      ["mousedown","touchstart"].forEach(ev=>canvas.addEventListener(ev,start,{passive:false}));
+      ["mousemove","touchmove"].forEach(ev=>canvas.addEventListener(ev,move,{passive:false}));
+      ["mouseup","mouseleave","touchend","touchcancel"].forEach(ev=>canvas.addEventListener(ev,stop,{passive:false}));
+    }
+    canvas.addEventListener("touchmove", function(event){event.preventDefault();}, {passive:false});
 
 
 
@@ -528,7 +515,7 @@
       }
     });
 
-    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("resize", function(){if(!drawing){resizeCanvas();}});
     readActivityFromUrl();
     updateInteractiveState();
     setTimeout(function(){resizeCanvas(); updateInteractiveState();}, 100);
