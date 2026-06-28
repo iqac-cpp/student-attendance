@@ -181,7 +181,7 @@
       <input type="hidden" id="referenceNo"><input type="hidden" id="activityName"><input type="hidden" id="department"><input type="hidden" id="activityDate">
       <div class="section-title">Student Details</div>
       <div class="field"><label for="studentName">Name of the Student <span class="required">*</span></label><input id="studentName" type="text" placeholder="Enter your full name" required></div>
-      <div class="field"><label for="rollNumber">Registered No</label><input id="rollNumber" type="text" placeholder="Enter registered number"><div class="hint">This helps avoid duplicate attendance entries.</div></div>
+      <div class="field"><label for="rollNumber">Registered No <span class="required">*</span></label><input id="rollNumber" type="text" inputmode="numeric" pattern="[0-9]{12}" minlength="12" maxlength="12" placeholder="Example: 125142701001" required><div class="hint">Enter your 12-digit registered number. Example: 125142701001</div></div>
       <div class="field"><label for="studentEmail">Student Email Address <span class="required">*</span></label><input id="studentEmail" type="email" placeholder="Enter your email address" required><div class="hint">Your participation certificate will be sent to this email.</div></div>
       <div class="field"><label for="programmeCourse">Programme & Course <span class="required">*</span></label><select id="programmeCourse" required>
 <option value="">Select Programme & Course</option>
@@ -295,9 +295,28 @@
       return programmeCourse;
     }
 
+
+    function isValidRegisteredNo_(){
+      return /^[0-9]{12}$/.test(document.getElementById("rollNumber").value.trim());
+    }
+
+    function validateRegisteredNoField_(){
+      const rollInput = document.getElementById("rollNumber");
+      rollInput.value = rollInput.value.replace(/\D/g, "").slice(0, 12);
+
+      if (!rollInput.value) {
+        rollInput.setCustomValidity("Please enter valid Registered Number.");
+      } else if (!/^[0-9]{12}$/.test(rollInput.value)) {
+        rollInput.setCustomValidity("Please enter valid Registered Number.");
+      } else {
+        rollInput.setCustomValidity("");
+      }
+    }
+
     function isStudentDetailsComplete(){
       return Boolean(
         document.getElementById("studentName").value.trim() &&
+        isValidRegisteredNo_() &&
         document.getElementById("studentEmail").value.trim() &&
         getSelectedCourse() &&
         document.getElementById("studentYear").value &&
@@ -318,6 +337,7 @@
       setStepDone(stepSignature, signatureConfirmed);
 
       document.getElementById("studentName").closest(".field").classList.toggle("completed", Boolean(document.getElementById("studentName").value.trim()));
+      document.getElementById("rollNumber").closest(".field").classList.toggle("completed", isValidRegisteredNo_());
       document.getElementById("studentEmail").closest(".field").classList.toggle("completed", Boolean(document.getElementById("studentEmail").value.trim()));
       document.getElementById("programmeCourse").closest(".field").classList.toggle("completed", Boolean(getSelectedCourse()));
       document.getElementById("studentYear").closest(".field").classList.toggle("completed", Boolean(document.getElementById("studentYear").value));
@@ -339,7 +359,7 @@
       if(!activityLoaded){
         progressHint.textContent = "Activity reference is missing. Please open the correct QR/link.";
       } else if(!detailsDone){
-        progressHint.textContent = "Complete student name, email, course, year and opinion.";
+        progressHint.textContent = "Complete student name, 12-digit registered number, email, course, year and opinion.";
       } else if(!signed){
         progressHint.textContent = "Sign inside the box and tap Upload Signature.";
       } else if(!signatureConfirmed){
@@ -431,6 +451,19 @@
       if(this.value === "Other"){box.classList.remove("hidden"); other.required=true;} else {box.classList.add("hidden"); other.required=false; other.value="";}
       updateInteractiveState();
     });
+
+    document.getElementById("rollNumber").addEventListener("input", function(){
+      validateRegisteredNoField_();
+      updateInteractiveState();
+    });
+
+    document.getElementById("rollNumber").addEventListener("blur", function(){
+      validateRegisteredNoField_();
+      if(this.value && !isValidRegisteredNo_()){
+        this.reportValidity();
+      }
+    });
+
     document.getElementById("clearSignatureBtn").addEventListener("click", function(){clearSignature(); hideStatus(); showSignatureMessage("warning","Signature cleared. Please sign again.");});
     document.getElementById("checkSignatureBtn").addEventListener("click", function(){updateInteractiveState(); signed ? openSignaturePreviewModal() : showSignatureMessage("error","Signature box is empty. Please sign using your finger.");});
 
@@ -525,7 +558,9 @@
 
     form.addEventListener("submit", async function(e){
       e.preventDefault(); hideStatus();
+      validateRegisteredNoField_();
       if(!form.checkValidity()){form.reportValidity(); return;}
+      if(!isValidRegisteredNo_()){showStatus("error","Please enter valid Registered Number."); document.getElementById("rollNumber").reportValidity(); return;}
       const course = document.getElementById("programmeCourse").value === "Other" ? document.getElementById("otherCourse").value.trim() : document.getElementById("programmeCourse").value;
       if(!course){document.getElementById("otherCourse").reportValidity(); return;}
       if(!signed){showStatus("error","Please sign inside the signature box and tap Upload Signature before submitting."); return;}
@@ -565,6 +600,7 @@
 
     window.addEventListener("resize", function(){ if(!drawing){ resizeCanvas(); } });
     hideSignatureMessage();
+    validateRegisteredNoField_();
     readActivityFromUrl();
     updateInteractiveState();
     setTimeout(function(){resizeCanvas(); updateInteractiveState();}, 100);
